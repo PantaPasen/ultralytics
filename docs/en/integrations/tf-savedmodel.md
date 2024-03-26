@@ -1,6 +1,6 @@
 ---
 comments: true
-description: A guide that goes through exporting from Ultralytics YOLOv8 models to TensorFlow SavedModel format for streamlined deployments and optimized model performance.
+description: A guide that goes through exporting from ultralytics_bower YOLOv8 models to TensorFlow SavedModel format for streamlined deployments and optimized model performance.
 keywords: Ultralytics YOLOv8, TensorFlow SavedModel, Model Deployment, TensorFlow Serving, TensorFlow Lite, Model Optimization, Computer Vision, Performance Optimization
 ---
 
@@ -73,7 +73,7 @@ Before diving into the usage instructions, it's important to note that while all
     === "Python"
 
         ```python
-        from ultralytics import YOLO
+        from ultralytics_bower import YOLO
 
         # Load the YOLOv8 model
         model = YOLO('yolov8n.pt')

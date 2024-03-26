@@ -6,9 +6,9 @@ import cv2
 import numpy as np
 import onnxruntime as ort
 
-from ultralytics.utils import ASSETS, yaml_load
-from ultralytics.utils.checks import check_yaml
-from ultralytics.utils.plotting import Colors
+from ultralytics_bower.utils import ASSETS, yaml_load
+from ultralytics_bower.utils.checks import check_yaml
+from ultralytics_bower.utils.plotting import Colors
 
 
 class YOLOv8Seg:
@@ -91,7 +91,7 @@ class YOLOv8Seg:
             pad_h (float): height padding in letterbox.
         """
 
-        # Resize and pad input image using letterbox() (Borrowed from Ultralytics)
+        # Resize and pad input image using letterbox() (Borrowed from ultralytics_bower)
         shape = img.shape[:2]  # original image shape
         new_shape = (self.model_height, self.model_width)
         r = min(new_shape[0] / shape[0], new_shape[1] / shape[1])

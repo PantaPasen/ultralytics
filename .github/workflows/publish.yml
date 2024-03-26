@@ -39,7 +39,7 @@ jobs:
         run: |
           import os
           import ultralytics
-          from ultralytics.utils.checks import check_latest_pypi_version
+          from ultralytics_bower.utils.checks import check_latest_pypi_version
 
           v_local = tuple(map(int, ultralytics.__version__.split('.')))
           v_pypi = tuple(map(int, check_latest_pypi_version().split('.')))

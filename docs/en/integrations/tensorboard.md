@@ -61,7 +61,7 @@ Before diving into the usage instructions, be sure to check out the range of [YO
     === "Python"
 
         ```python
-       from ultralytics import YOLO
+       from ultralytics_bower import YOLO
 
        # Load a pre-trained model
        model = YOLO('yolov8n.pt')

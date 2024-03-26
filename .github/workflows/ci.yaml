@@ -69,7 +69,7 @@ jobs:
           MODEL_ID: ${{ secrets.ULTRALYTICS_HUB_MODEL_ID }}
         run: |
           import os
-          from ultralytics import YOLO, hub
+          from ultralytics_bower import YOLO, hub
           api_key, model_id = os.environ['API_KEY'], os.environ['MODEL_ID']
           hub.login(api_key)
           hub.reset_model(model_id)
@@ -267,7 +267,7 @@ jobs:
       - name: Test Python
         run: |
           python -c "
-          from ultralytics import YOLO
+          from ultralytics_bower import YOLO
           model = YOLO('yolov8n.pt')
           results = model.train(data='coco8.yaml', epochs=3, imgsz=160)
           results = model.val(imgsz=160)

@@ -30,7 +30,7 @@ Ultralytics commands use the following syntax:
     === "Python"
 
         ```python
-        from ultralytics import YOLO
+        from ultralytics_bower import YOLO
 
         # Load a YOLOv8 model from a pre-trained weights file
         model = YOLO('yolov8n.pt')

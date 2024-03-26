@@ -74,7 +74,7 @@ You can download the model [here](https://github.com/ChaoningZhang/MobileSAM/blo
     === "Python"
 
         ```python
-        from ultralytics import SAM
+        from ultralytics_bower import SAM
 
         # Load the model
         model = SAM('mobile_sam.pt')
@@ -90,7 +90,7 @@ You can download the model [here](https://github.com/ChaoningZhang/MobileSAM/blo
     === "Python"
 
         ```python
-        from ultralytics import SAM
+        from ultralytics_bower import SAM
 
         # Load the model
         model = SAM('mobile_sam.pt')

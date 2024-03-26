@@ -11,7 +11,7 @@ from collections import defaultdict
 from pathlib import Path
 
 # Get package root i.e. /Users/glennjocher/PycharmProjects/ultralytics/ultralytics
-from ultralytics.utils import ROOT as PACKAGE_DIR
+from ultralytics_bower.utils import ROOT as PACKAGE_DIR
 
 # Constants
 REFERENCE_DIR = PACKAGE_DIR.parent / "docs/en/reference"

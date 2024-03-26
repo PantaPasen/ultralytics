@@ -1,5 +1,5 @@
 ---
-description: Master advanced plotting utils from Ultralytics including color annotations, label and image plotting, and feature visualization.
+description: Master advanced plotting utils from ultralytics_bower including color annotations, label and image plotting, and feature visualization.
 keywords: Ultralytics, plotting, utils, color annotation, label plotting, image plotting, feature visualization
 ---
 

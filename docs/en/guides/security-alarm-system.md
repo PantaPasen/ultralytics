@@ -34,8 +34,8 @@ import torch
 import numpy as np
 import cv2
 from time import time
-from ultralytics import YOLO
-from ultralytics.utils.plotting import Annotator, colors
+from ultralytics_bower import YOLO
+from ultralytics_bower.utils.plotting import Annotator, colors
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText

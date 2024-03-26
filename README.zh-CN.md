@@ -83,7 +83,7 @@ yolo predict model=yolov8n.pt source='https://ultralytics.com/images/bus.jpg'
 YOLOv8 也可以在 Python 环境中直接使用，并接受与上述 CLI 示例中相同的[参数](https://docs.ultralytics.com/usage/cfg/)：
 
 ```python
-from ultralytics import YOLO
+from ultralytics_bower import YOLO
 
 # 加载模型
 model = YOLO("yolov8n.yaml")  # 从头开始构建新模型

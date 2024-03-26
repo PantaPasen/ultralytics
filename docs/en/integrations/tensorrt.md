@@ -82,7 +82,7 @@ Before diving into the usage instructions, be sure to check out the range of [YO
     === "Python"
 
         ```python
-        from ultralytics import YOLO
+        from ultralytics_bower import YOLO
 
         # Load the YOLOv8 model
         model = YOLO('yolov8n.pt')

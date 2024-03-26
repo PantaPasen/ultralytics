@@ -21,8 +21,8 @@ Object blurring with [Ultralytics YOLOv8](https://github.com/ultralytics/ultraly
     === "Object Blurring"
 
         ```python
-        from ultralytics import YOLO
-        from ultralytics.utils.plotting import Annotator, colors
+        from ultralytics_bower import YOLO
+        from ultralytics_bower.utils.plotting import Annotator, colors
         import cv2
 
         model = YOLO("yolov8n.pt")

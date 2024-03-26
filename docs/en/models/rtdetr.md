@@ -34,7 +34,7 @@ This example provides simple RT-DETR training and inference examples. For full d
     === "Python"
 
         ```python
-        from ultralytics import RTDETR
+        from ultralytics_bower import RTDETR
 
         # Load a COCO-pretrained RT-DETR-l model
         model = RTDETR('rtdetr-l.pt')
