@@ -777,7 +777,10 @@ def plot_images(
                 boxes[..., 1::2] += y
                 for j, box in enumerate(boxes.astype(np.int64).tolist()):
                     c = classes[j]
-                    color = colors(c)
+                    if isinstance(c, int):
+                        color = colors(c)
+                    else:
+                        color = colors(sum(c))
                     c = names.get(c, c) if names else c
                     if labels or conf[j] > conf_thres:
                         label = f"{c}" if labels else f"{c} {conf[j]:.1f}"

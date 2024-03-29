@@ -98,7 +98,7 @@ class DetectMultiHead(Detect):
 
     def __init__(self, nc=(80, 80), ch=()):
         """Initializes the YOLOv8 detection layer with specified number of classes and channels."""
-        super().__init__()
+        super(Detect, self).__init__()
         self.nc = nc  # number of classes
         self.nl = len(ch)  # number of detection layers
         self.reg_max = 16  # DFL channels (ch[0] // 16 to scale 4/8/12/16/20 for n/s/m/l/x)
@@ -132,12 +132,12 @@ class DetectMultiHead(Detect):
             self.shape = shape
 
         if self.export and self.format in ("saved_model", "pb", "tflite", "edgetpu", "tfjs"):  # avoid TF FlexSplitV ops
+            raise NotImplementedError("Do I need to implement this??")
             box = x_cat[:, : self.reg_max * 4]
             cls1 = x_cat[:, self.reg_max * 4 : self.reg_max * 4 + self.nc[0]]
             cls2 = x_cat[:, self.reg_max * 4 + self.nc[0] :]
         else:
-            raise NotImplementedError("Do I need to implement this??")
-            #box, cls = x_cat.split((self.reg_max * 4, self.nc[0] + self.nc[1]), 1)
+            box, cls = x_cat.split([self.reg_max * 4, sum(self.nc)], 1)
 
         if self.export and self.format in ("tflite", "edgetpu"):
             # Precompute normalization factor to increase numerical stability
@@ -150,7 +150,7 @@ class DetectMultiHead(Detect):
         else:
             dbox = self.decode_bboxes(self.dfl(box), self.anchors.unsqueeze(0)) * self.strides
 
-        y = torch.cat((dbox, cls1.sigmoid(), cls2.sigmoid()), 1)
+        y = torch.cat([dbox, cls.sigmoid()], 1)
         return y if self.export else (y, x)
 
     def bias_init(self):
@@ -160,7 +160,7 @@ class DetectMultiHead(Detect):
         # ncf = math.log(0.6 / (m.nc - 0.999999)) if cf is None else torch.log(cf / cf.sum())  # nominal class frequency
         for a, b, s in zip(m.cv2, m.cv3, m.stride):  # from
             a[-1].bias.data[:] = 1.0  # box
-            b[-1].bias.data[: m.nc] = math.log(5 / m.nc / (640 / s) ** 2)  # cls (.01 objects, 80 classes, 640 img)
+            b[-1].bias.data[: sum(m.nc)] = math.log(5 / sum(m.nc) / (640 / s) ** 2)  # cls (.01 objects, 80 classes, 640 img)
 
     def decode_bboxes(self, bboxes, anchors):
         """Decode bounding boxes."""

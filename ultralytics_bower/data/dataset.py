@@ -51,6 +51,9 @@ class YOLODataset(BaseDataset):
         Returns:
             (dict): labels.
         """
+        num_classes = self.data["nc"]
+        num_labels = len(num_classes) if isinstance(num_classes, list) else 1
+
         x = {"labels": []}
         nm, nf, ne, nc, msgs = 0, 0, 0, 0, []  # number missing, found, empty, corrupt, messages
         desc = f"{self.prefix}Scanning {path.parent / path.stem}..."
@@ -69,7 +72,7 @@ class YOLODataset(BaseDataset):
                     self.label_files,
                     repeat(self.prefix),
                     repeat(self.use_keypoints),
-                    repeat(len(self.data["names"])),
+                    repeat(num_classes),
                     repeat(nkpt),
                     repeat(ndim),
                 ),
@@ -85,7 +88,7 @@ class YOLODataset(BaseDataset):
                         dict(
                             im_file=im_file,
                             shape=shape,
-                            cls=lb[:, 0:1],  # n, 1
+                            cls=lb[:, :num_labels],  # n, 1
                             bboxes=lb[:, 1:],  # n, 4
                             segments=segments,
                             keypoints=keypoint,

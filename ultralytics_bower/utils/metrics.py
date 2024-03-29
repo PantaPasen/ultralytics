@@ -296,7 +296,11 @@ class ConfusionMatrix:
     def __init__(self, nc, conf=0.25, iou_thres=0.45, task="detect"):
         """Initialize attributes for the YOLO model."""
         self.task = task
-        self.matrix = np.zeros((nc + 1, nc + 1)) if self.task == "detect" else np.zeros((nc, nc))
+        if isinstance(nc, list):
+            l = np.prod(nc)
+            self.matrix = np.zeros((l + 1, l + 1)) if self.task == "detect" else np.zeros((l, l))
+        else:
+            self.matrix = np.zeros((nc + 1, nc + 1)) if self.task == "detect" else np.zeros((nc, nc))
         self.nc = nc  # number of classes
         self.conf = 0.25 if conf in (None, 0.001) else conf  # apply 0.25 if default val conf is passed
         self.iou_thres = iou_thres

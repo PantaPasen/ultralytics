@@ -210,7 +210,13 @@ class BaseTrainer:
                 ddp_cleanup(self, str(file))
 
         else:
-            self._do_train(world_size)
+            try:
+                self._do_train(world_size)
+            except Exception as e:
+                print("Oh no")
+                print(e)
+                raise e
+                
 
     def _setup_scheduler(self):
         """Initialize training learning rate scheduler."""
@@ -722,6 +728,8 @@ class BaseTrainer:
                 f"determining best 'optimizer', 'lr0' and 'momentum' automatically... "
             )
             nc = getattr(model, "nc", 10)  # number of classes
+            if isinstance(nc, list):
+                nc = sum(nc)
             lr_fit = round(0.002 * 5 / (4 + nc), 6)  # lr0 fit equation to 6 decimal places
             name, lr, momentum = ("SGD", 0.01, 0.9) if iterations > 10000 else ("AdamW", lr_fit, 0.9)
             self.args.warmup_bias_lr = 0.0  # no higher than 0.01 for Adam

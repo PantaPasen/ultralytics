@@ -53,7 +53,7 @@ from ultralytics_bower.nn.modules import (
 )
 from ultralytics_bower.utils import DEFAULT_CFG_DICT, DEFAULT_CFG_KEYS, LOGGER, colorstr, emojis, yaml_load
 from ultralytics_bower.utils.checks import check_requirements, check_suffix, check_yaml
-from ultralytics_bower.utils.loss import v8ClassificationLoss, v8DetectionLoss, v8OBBLoss, v8PoseLoss, v8SegmentationLoss
+from ultralytics_bower.utils.loss import v8ClassificationLoss, v8DetectionLoss, v8OBBLoss, v8PoseLoss, v8SegmentationLoss, v8MultiHeadDetectionLoss
 from ultralytics_bower.utils.plotting import feature_visualization
 from ultralytics_bower.utils.torch_utils import (
     fuse_conv_and_bn,
@@ -286,7 +286,14 @@ class DetectionModel(BaseModel):
             LOGGER.info(f"Overriding model.yaml nc={self.yaml['nc']} with nc={nc}")
             self.yaml["nc"] = nc  # override YAML value
         self.model, self.save = parse_model(deepcopy(self.yaml), ch=ch, verbose=verbose)  # model, savelist
-        self.names = {i: f"{i}" for i in range(self.yaml["nc"])}  # default names dict
+        nc = self.yaml["nc"]
+        if isinstance(nc, list):
+            self.names = [
+                {i: f"{i}" for i in range(n)}
+                for n in nc   
+            ]
+        else:
+            self.names = {i: f"{i}" for i in range(self.yaml["nc"])}  # default names dict
         self.inplace = self.yaml.get("inplace", True)
 
         # Build strides
@@ -345,6 +352,10 @@ class DetectionModel(BaseModel):
 
     def init_criterion(self):
         """Initialize the loss criterion for the DetectionModel."""
+        nc = self.yaml["nc"]
+        if isinstance(nc, list):
+            return v8MultiHeadDetectionLoss(self)
+        
         return v8DetectionLoss(self)
 
 
@@ -709,9 +720,9 @@ def torch_safe_load(weight):
     try:
         with temporary_modules(
             {
-                "ultralytics.yolo.utils": "ultralytics.utils",
-                "ultralytics.yolo.v8": "ultralytics.models.yolo",
-                "ultralytics.yolo.data": "ultralytics.data",
+                "ultralytics_bower.yolo.utils": "ultralytics_bower.utils",
+                "ultralytics_bower.yolo.v8": "ultralytics_bower.models.yolo",
+                "ultralytics_bower.yolo.data": "ultralytics_bower.data",
             }
         ):  # for legacy 8.0 Classify and Pose models
             ckpt = torch.load(file, map_location="cpu")

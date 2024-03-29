@@ -38,7 +38,7 @@ jobs:
         shell: python
         run: |
           import os
-          import ultralytics
+          import ultralytics_bower
           from ultralytics_bower.utils.checks import check_latest_pypi_version
 
           v_local = tuple(map(int, ultralytics.__version__.split('.')))

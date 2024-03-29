@@ -88,15 +88,18 @@ def verify_image(args):
         nf = 1
     except Exception as e:
         nc = 1
-        msg = f"{prefix}WARNING ⚠️ {im_file}: ignoring corrupt image/label: {e}"
+        msg = f"{prefix}WARNING ⚠️ {im_file}: ignoring corrupt image: {e}"
     return (im_file, cls), nf, nc, msg
 
 
 def verify_image_label(args):
     """Verify one image-label pair."""
     im_file, lb_file, prefix, keypoint, num_cls, nkpt, ndim = args
-    # Number (missing, found, empty, corrupt), message, segments, keypoints
+    num_labels = len(num_cls) if isinstance(num_cls, list) else 1
+    num_columns = 4 + num_labels
+
     nm, nf, ne, nc, msg, segments, keypoints = 0, 0, 0, 0, "", [], None
+
     try:
         # Verify images
         im = Image.open(im_file)
@@ -128,16 +131,15 @@ def verify_image_label(args):
                     assert lb.shape[1] == (5 + nkpt * ndim), f"labels require {(5 + nkpt * ndim)} columns each"
                     points = lb[:, 5:].reshape(-1, ndim)[:, :2]
                 else:
-                    assert lb.shape[1] == 5, f"labels require 5 columns, {lb.shape[1]} columns detected"
-                    points = lb[:, 1:]
+                    assert lb.shape[1] == num_columns, f"labels require {num_columns} columns, {lb.shape[1]} columns detected"
+                    points = lb[:, num_labels:]
                 assert points.max() <= 1, f"non-normalized or out of bounds coordinates {points[points > 1]}"
                 assert lb.min() >= 0, f"negative label values {lb[lb < 0]}"
 
                 # All labels
-                max_cls = lb[:, 0].max()  # max label count
-                assert max_cls <= num_cls, (
-                    f"Label class {int(max_cls)} exceeds dataset class count {num_cls}. "
-                    f"Possible class labels are 0-{num_cls - 1}"
+                max_cls = lb[:, :num_labels].max(axis=0)  # max label count
+                assert (max_cls <= num_cls).all(), (
+                    f"Label class {max_cls} exceeds dataset class count {num_cls}. "
                 )
                 _, i = np.unique(lb, axis=0, return_index=True)
                 if len(i) < nl:  # duplicate row check
@@ -292,7 +294,10 @@ def check_det_dataset(dataset, autodownload=True):
     if "names" not in data:
         data["names"] = [f"class_{i}" for i in range(data["nc"])]
     else:
-        data["nc"] = len(data["names"])
+        if isinstance(data["names"], list) and isinstance(data["names"][0], dict):
+            data["nc"] = [len(n) for n in data["names"]]
+        else:
+            data["nc"] = len(data["names"])
 
     data["names"] = check_class_names(data["names"])
 

@@ -69,10 +69,13 @@ class DetectionValidator(BaseValidator):
         self.class_map = converter.coco80_to_coco91_class() if self.is_coco else list(range(1000))
         self.args.save_json |= self.is_coco and not self.training  # run on final val if training COCO
         self.names = model.names
-        self.nc = len(model.names)
+        self.nc = model.nc
         self.metrics.names = self.names
-        self.metrics.plot = self.args.plots
-        self.confusion_matrix = ConfusionMatrix(nc=self.nc, conf=self.args.conf)
+        # TODO Update confusion matrix to display properly for list(nc)
+        if False: #if self.args.plots:
+            raise NotImplementedError()
+            self.metrics.plot = self.args.plots
+            self.confusion_matrix = ConfusionMatrix(nc=self.nc, conf=self.args.conf)
         self.seen = 0
         self.jdict = []
         self.stats = dict(tp=[], conf=[], pred_cls=[], target_cls=[])
@@ -91,6 +94,7 @@ class DetectionValidator(BaseValidator):
             multi_label=True,
             agnostic=self.args.single_cls,
             max_det=self.args.max_det,
+            nc=self.nc,
         )
 
     def _prepare_batch(self, si, batch):
@@ -168,22 +172,41 @@ class DetectionValidator(BaseValidator):
         stats = {k: torch.cat(v, 0).cpu().numpy() for k, v in self.stats.items()}  # to numpy
         if len(stats) and stats["tp"].any():
             self.metrics.process(**stats)
-        self.nt_per_class = np.bincount(
-            stats["target_cls"].astype(int), minlength=self.nc
-        )  # number of targets per class
+        if isinstance(self.nc, list):
+            self.nt_per_class = [np.bincount(
+                stats["target_cls"].astype(int)[:,i], minlength=n
+            ) for i, n in enumerate(self.nc)]
+        else:
+            self.nt_per_class = np.bincount(
+                stats["target_cls"].astype(int), minlength=self.nc
+            )  # number of targets per class
         return self.metrics.results_dict
 
     def print_results(self):
         """Prints training/validation set metrics per class."""
-        pf = "%22s" + "%11i" * 2 + "%11.3g" * len(self.metrics.keys)  # print format
-        LOGGER.info(pf % ("all", self.seen, self.nt_per_class.sum(), *self.metrics.mean_results()))
-        if self.nt_per_class.sum() == 0:
-            LOGGER.warning(f"WARNING ⚠️ no labels found in {self.args.task} set, can not compute metrics without labels")
+        
+        if isinstance(self.nc, list):
+            pf = "%22s" + "%11i" * (1 + len(self.nc)) + "%11.3g" * len(self.metrics.keys)  # print format
+            LOGGER.info(pf % ("all", self.seen, *[n.sum() for n in self.nt_per_class], *self.metrics.mean_results()))
 
-        # Print results per class
-        if self.args.verbose and not self.training and self.nc > 1 and len(self.stats):
-            for i, c in enumerate(self.metrics.ap_class_index):
-                LOGGER.info(pf % (self.names[c], self.seen, self.nt_per_class[c], *self.metrics.class_result(i)))
+            if self.args.verbose and not self.training and len(self.stats):
+                print("vebose?!")
+                print(self.metrics.ap_class_index)
+                print(self.names)
+                print(self.metrics.class_result)
+
+                for i, c in enumerate(self.metrics.ap_class_index):
+                    LOGGER.info(pf % (self.names[c], self.seen, self.nt_per_class[c], *self.metrics.class_result(i)))
+        else:
+            pf = "%22s" + "%11i" * 2 + "%11.3g" * len(self.metrics.keys)  # print format
+            LOGGER.info(pf % ("all", self.seen, self.nt_per_class.sum(), *self.metrics.mean_results()))
+            if self.nt_per_class.sum() == 0:
+                LOGGER.warning(f"WARNING ⚠️ no labels found in {self.args.task} set, can not compute metrics without labels")
+
+            # Print results per class
+            if self.args.verbose and not self.training and self.nc > 1 and len(self.stats):
+                for i, c in enumerate(self.metrics.ap_class_index):
+                    LOGGER.info(pf % (self.names[c], self.seen, self.nt_per_class[c], *self.metrics.class_result(i)))
 
         if self.args.plots:
             for normalize in True, False:

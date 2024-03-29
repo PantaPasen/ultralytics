@@ -1,6 +1,7 @@
 # Ultralytics YOLO 🚀, AGPL-3.0 license
 
 import contextlib
+import functools
 import math
 import re
 import time
@@ -206,23 +207,30 @@ def non_max_suppression(
             shape (num_boxes, 6 + num_masks) containing the kept boxes, with columns
             (x1, y1, x2, y2, confidence, class, mask1, mask2, ...).
     """
-
     # Checks
     assert 0 <= conf_thres <= 1, f"Invalid Confidence threshold {conf_thres}, valid values are between 0.0 and 1.0"
     assert 0 <= iou_thres <= 1, f"Invalid IoU {iou_thres}, valid values are between 0.0 and 1.0"
     if isinstance(prediction, (list, tuple)):  # YOLOv8 model in validation model, output = (inference_out, loss_out)
         prediction = prediction[0]  # select only inference output
 
-    bs = prediction.shape[0]  # batch size
+    # num classes total
     nc = nc or (prediction.shape[1] - 4)  # number of classes
-    nm = prediction.shape[1] - nc - 4
-    mi = 4 + nc  # mask start index
-    xc = prediction[:, 4:mi].amax(1) > conf_thres  # candidates
+    nc = [nc] if isinstance(nc, int) else nc
+    nct = sum(nc) #(sum(nc) if isinstance(nc, list) else nc)
+
+    bs = prediction.shape[0]  # batch size
+    nm = prediction.shape[1] - nct - 4
+    mi = 4 + nct  # mask start index
+
+    cls = prediction[:, 4:mi].split(nc, 1)
+    xcc = [c.amax(1) > conf_thres for c in cls]
+    # Candidates have a label for all categories above conf_thresh
+    xc = functools.reduce(torch.mul, xcc)
 
     # Settings
     # min_wh = 2  # (pixels) minimum box width and height
-    time_limit = 2.0 + max_time_img * bs  # seconds to quit after
-    multi_label &= nc > 1  # multiple labels per box (adds 0.5ms/img)
+    time_limit = 200.0 + max_time_img * bs  # seconds to quit after
+    multi_label &= nct > 1  # multiple labels per box (adds 0.5ms/img)
 
     prediction = prediction.transpose(-1, -2)  # shape(1,84,6300) to shape(1,6300,84)
     if not rotated:
@@ -232,14 +240,15 @@ def non_max_suppression(
             prediction = torch.cat((xywh2xyxy(prediction[..., :4]), prediction[..., 4:]), dim=-1)  # xywh to xyxy
 
     t = time.time()
-    output = [torch.zeros((0, 6 + nm), device=prediction.device)] * bs
+    output = [torch.zeros((0, 4 + 2 * len(nc) + nm), device=prediction.device)] * bs
     for xi, x in enumerate(prediction):  # image index, image inference
         # Apply constraints
-        # x[((x[:, 2:4] < min_wh) | (x[:, 2:4] > max_wh)).any(1), 4] = 0  # width-height
         x = x[xc[xi]]  # confidence
+
 
         # Cat apriori labels if autolabelling
         if labels and len(labels[xi]) and not rotated:
+            raise NotImplementedError()
             lb = labels[xi]
             v = torch.zeros((len(lb), nc + nm + 4), device=x.device)
             v[:, :4] = xywh2xyxy(lb[:, 1:5])  # box
@@ -251,48 +260,50 @@ def non_max_suppression(
             continue
 
         # Detections matrix nx6 (xyxy, conf, cls)
-        box, cls, mask = x.split((4, nc, nm), 1)
+        box, cls, mask = x.split((4, nct, nm), 1)
+        cls = cls.split(nc, 1)
 
         if multi_label:
-            i, j = torch.where(cls > conf_thres)
-            x = torch.cat((box[i], x[i, 4 + j, None], j[:, None].float(), mask[i]), 1)
+            # This is hardcoded to specifically work with two labels per label
+            # That will work for our needs but isn't general like the rest of the
+            # code.
+            i, *j = torch.where(
+                torch.matmul(cls[0].unsqueeze(-1), cls[1].unsqueeze(1)) > conf_thres
+            )
+            
+            x = torch.cat([box[i]] + [
+                torch.cat([cls[ii][i, jj, None], jj[:, None].float()], 1)
+                for ii, jj in enumerate(j)
+            ] + [mask[i]], 1)
         else:  # best class only
+            raise NotImplementedError()
             conf, j = cls.max(1, keepdim=True)
             x = torch.cat((box, conf, j.float(), mask), 1)[conf.view(-1) > conf_thres]
 
         # Filter by class
         if classes is not None:
+            raise NotImplementedError()
             x = x[(x[:, 5:6] == torch.tensor(classes, device=x.device)).any(1)]
+            
+        scores = x[:, 4::2].prod(1)
 
         # Check shape
         n = x.shape[0]  # number of boxes
         if not n:  # no boxes
             continue
         if n > max_nms:  # excess boxes
-            x = x[x[:, 4].argsort(descending=True)[:max_nms]]  # sort by confidence and remove excess boxes
+            x = x[scores.argsort(descending=True)[:max_nms]]  # sort by confidence and remove excess boxes
 
         # Batched NMS
-        c = x[:, 5:6] * (0 if agnostic else max_wh)  # classes
-        scores = x[:, 4]  # scores
+        c = (x[:, 5::2] * (0 if agnostic else max_wh)).sum(1, keepdim=True)  # classes
         if rotated:
+            raise NotImplementedError()
             boxes = torch.cat((x[:, :2] + c, x[:, 2:4], x[:, -1:]), dim=-1)  # xywhr
             i = nms_rotated(boxes, scores, iou_thres)
         else:
             boxes = x[:, :4] + c  # boxes (offset by class)
             i = torchvision.ops.nms(boxes, scores, iou_thres)  # NMS
         i = i[:max_det]  # limit detections
-
-        # # Experimental
-        # merge = False  # use merge-NMS
-        # if merge and (1 < n < 3E3):  # Merge NMS (boxes merged using weighted mean)
-        #     # Update boxes as boxes(i,4) = weights(i,n) * boxes(n,4)
-        #     from .metrics import box_iou
-        #     iou = box_iou(boxes[i], boxes) > iou_thres  # IoU matrix
-        #     weights = iou * scores[None]  # box weights
-        #     x[i, :4] = torch.mm(weights, x[:, :4]).float() / weights.sum(1, keepdim=True)  # merged boxes
-        #     redundant = True  # require redundant detections
-        #     if redundant:
-        #         i = i[iou.sum(1) > 1]  # require redundancy
 
         output[xi] = x[i]
         if (time.time() - t) > time_limit:
