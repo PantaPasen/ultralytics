@@ -69,10 +69,16 @@ class DetectionValidator(BaseValidator):
         self.class_map = converter.coco80_to_coco91_class() if self.is_coco else list(range(1000))
         self.args.save_json |= self.is_coco and not self.training  # run on final val if training COCO
         self.names = model.names
-        self.nc = model.nc
+
+        if isinstance(self.names[0], dict):
+            self.nc = [len(d) for d in self.names.values()]
+        else:
+            self.nc = len(self.names)
+
         self.metrics.names = self.names
         # TODO Update confusion matrix to display properly for list(nc)
-        if False: #if self.args.plots:
+        self.args.plots = False
+        if self.args.plots:
             raise NotImplementedError()
             self.metrics.plot = self.args.plots
             self.confusion_matrix = ConfusionMatrix(nc=self.nc, conf=self.args.conf)
@@ -190,10 +196,6 @@ class DetectionValidator(BaseValidator):
             LOGGER.info(pf % ("all", self.seen, *[n.sum() for n in self.nt_per_class], *self.metrics.mean_results()))
 
             if self.args.verbose and not self.training and len(self.stats):
-                print("vebose?!")
-                print(self.metrics.ap_class_index)
-                print(self.names)
-                print(self.metrics.class_result)
 
                 for i, c in enumerate(self.metrics.ap_class_index):
                     LOGGER.info(pf % (self.names[c], self.seen, self.nt_per_class[c], *self.metrics.class_result(i)))

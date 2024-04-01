@@ -39,6 +39,13 @@ def check_class_names(names):
         if isinstance(names[0], str) and names[0].startswith("n0"):  # imagenet class codes, i.e. 'n01440764'
             names_map = yaml_load(ROOT / "cfg/datasets/ImageNet.yaml")["map"]  # human-readable names
             names = {k: names_map[v] for k, v in names.items()}
+        
+        # Try parsing the class names as dicts in case it's multilabel
+        try:
+            names = {k: eval(v) for k,v in names.items()}
+        except:
+            pass
+            
     return names
 
 

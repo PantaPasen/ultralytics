@@ -6,6 +6,7 @@ Usage:
     $ yolo mode=train model=yolov8n.pt data=coco128.yaml imgsz=640 epochs=100 batch=16
 """
 
+import gc
 import math
 import os
 import subprocess
@@ -23,6 +24,7 @@ from torch import nn, optim
 from ultralytics_bower.cfg import get_cfg, get_save_dir
 from ultralytics_bower.data.utils import check_cls_dataset, check_det_dataset
 from ultralytics_bower.nn.tasks import attempt_load_one_weight, attempt_load_weights
+from ultralytics_bower.nn.autobackend import check_class_names
 from ultralytics_bower.utils import (
     DEFAULT_CFG,
     LOGGER,
@@ -350,6 +352,8 @@ class BaseTrainer:
             self.plot_idx.extend([base_idx, base_idx + 1, base_idx + 2])
         epoch = self.start_epoch
         while True:
+            #torch.cuda.empty_cache()
+            gc.collect()
             self.epoch = epoch
             self.run_callbacks("on_train_epoch_start")
             self.model.train()
@@ -587,7 +591,7 @@ class BaseTrainer:
 
     def set_model_attributes(self):
         """To set or update model parameters before training."""
-        self.model.names = self.data["names"]
+        self.model.names = check_class_names(self.data["names"])
 
     def build_targets(self, preds, targets):
         """Builds target tensors for training YOLO model."""
