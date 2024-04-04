@@ -61,8 +61,24 @@ class TaskAlignedAssigner(nn.Module):
 
         if self.n_max_boxes == 0:
             device = gt_bboxes.device
-            # TODO: Update these returns for multilabel
-            raise NotImplementedError()
+            if isinstance(pd_scores, list):
+                return (
+                    [
+                        torch.full_like(p[..., 0], self.bg_idx[i]).to(device)
+                        for i, p in enumerate(pd_scores)
+                    ],
+                    torch.zeros_like(pd_bboxes).to(device),
+                    torch.dstack([
+                        torch.zeros_like(p).to(device)
+                        for p in pd_scores
+                    ]),
+                    torch.zeros_like(pd_scores[0][..., 0]).to(device),
+                    [
+                        torch.zeros_like(p[..., 0]).to(device)
+                        for p in pd_scores
+                    ],
+                )
+
             return (
                 torch.full_like(pd_scores[..., 0], self.bg_idx).to(device),
                 torch.zeros_like(pd_bboxes).to(device),

@@ -88,8 +88,8 @@ class YOLODataset(BaseDataset):
                         dict(
                             im_file=im_file,
                             shape=shape,
-                            cls=lb[:, :num_labels],  # n, 1
-                            bboxes=lb[:, 1:],  # n, 4
+                            cls=lb[:, :num_labels],  # n, num_labels
+                            bboxes=lb[:, num_labels:],  # n, 4
                             segments=segments,
                             keypoints=keypoint,
                             normalized=True,

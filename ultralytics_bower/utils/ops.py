@@ -276,7 +276,6 @@ def non_max_suppression(
                 for ii, jj in enumerate(j)
             ] + [mask[i]], 1)
         else:  # best class only
-            raise NotImplementedError()
             conf, j = cls.max(1, keepdim=True)
             x = torch.cat((box, conf, j.float(), mask), 1)[conf.view(-1) > conf_thres]
 
