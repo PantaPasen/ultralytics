@@ -22,6 +22,7 @@ class DetectionPredictor(BasePredictor):
 
     def postprocess(self, preds, img, orig_imgs):
         """Post-processes predictions and returns a list of Results objects."""
+        names = self.model.names
         preds = ops.non_max_suppression(
             preds,
             self.args.conf,
@@ -29,6 +30,7 @@ class DetectionPredictor(BasePredictor):
             agnostic=self.args.agnostic_nms,
             max_det=self.args.max_det,
             classes=self.args.classes,
+            nc = [len(d) for d in names.values()] if isinstance(names[0], dict) else None,
         )
 
         if not isinstance(orig_imgs, list):  # input images are a torch.Tensor, not a list

@@ -151,7 +151,7 @@ class DetectionValidator(BaseValidator):
                 pred[:, 5] = 0
             predn = self._prepare_pred(pred, pbatch)
             stat["conf"] = predn[:, 4]
-            stat["pred_cls"] = predn[:, 5]
+            stat["pred_cls"] = predn[:, 5::2]
 
             # Evaluate
             if nl:
@@ -179,9 +179,13 @@ class DetectionValidator(BaseValidator):
         if len(stats) and stats["tp"].any():
             self.metrics.process(**stats)
         if isinstance(self.nc, list):
-            self.nt_per_class = [np.bincount(
-                stats["target_cls"].astype(int)[:,i], minlength=n
-            ) for i, n in enumerate(self.nc)]
+            counts = []
+            for i in range(self.nc[0]):
+                for j in range(self.nc[1]):
+                    counts.append(
+                        (stats["target_cls"].astype(int) == np.array([i,j])).all(axis=1).sum()
+                    )
+            self.nt_per_class = np.array(counts)
         else:
             self.nt_per_class = np.bincount(
                 stats["target_cls"].astype(int), minlength=self.nc
@@ -190,22 +194,19 @@ class DetectionValidator(BaseValidator):
 
     def print_results(self):
         """Prints training/validation set metrics per class."""
+        pf = "%22s" + "%11i" * 2 + "%11.3g" * len(self.metrics.keys)  # print format
+        LOGGER.info(pf % ("all", self.seen, self.nt_per_class.sum(), *self.metrics.mean_results()))
+
+        if self.nt_per_class.sum() == 0:
+            LOGGER.warning(f"WARNING ⚠️ no labels found in {self.args.task} set, can not compute metrics without labels")
         
+        # Print results per class
         if isinstance(self.nc, list):
-            pf = "%22s" + "%11i" * (1 + len(self.nc)) + "%11.3g" * len(self.metrics.keys)  # print format
-            LOGGER.info(pf % ("all", self.seen, *[n.sum() for n in self.nt_per_class], *self.metrics.mean_results()))
-
             if self.args.verbose and not self.training and len(self.stats):
-
                 for i, c in enumerate(self.metrics.ap_class_index):
-                    LOGGER.info(pf % (self.names[c], self.seen, self.nt_per_class[c], *self.metrics.class_result(i)))
+                    name = f"{self.names[0][c[0]]} {self.names[1][c[1]]}"
+                    LOGGER.info(pf % (name, self.seen, self.nt_per_class[i], *self.metrics.class_result(i)))
         else:
-            pf = "%22s" + "%11i" * 2 + "%11.3g" * len(self.metrics.keys)  # print format
-            LOGGER.info(pf % ("all", self.seen, self.nt_per_class.sum(), *self.metrics.mean_results()))
-            if self.nt_per_class.sum() == 0:
-                LOGGER.warning(f"WARNING ⚠️ no labels found in {self.args.task} set, can not compute metrics without labels")
-
-            # Print results per class
             if self.args.verbose and not self.training and self.nc > 1 and len(self.stats):
                 for i, c in enumerate(self.metrics.ap_class_index):
                     LOGGER.info(pf % (self.names[c], self.seen, self.nt_per_class[c], *self.metrics.class_result(i)))

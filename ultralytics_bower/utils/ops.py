@@ -216,6 +216,8 @@ def non_max_suppression(
     # num classes total
     nc = nc or (prediction.shape[1] - 4)  # number of classes
     nc = [nc] if isinstance(nc, int) else nc
+    if len(nc) > 1:
+        multi_label = True
     nct = sum(nc) #(sum(nc) if isinstance(nc, list) else nc)
 
     bs = prediction.shape[0]  # batch size

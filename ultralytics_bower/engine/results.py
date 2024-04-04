@@ -110,13 +110,15 @@ class Results(SimpleClass):
         """
         self.orig_img = orig_img
         self.orig_shape = orig_img.shape[:2]
-        self.boxes = Boxes(boxes, self.orig_shape) if boxes is not None else None  # native size boxes
+        self.names = names
+        self.nc = [len(d) for d in names.values()] if isinstance(names[0], dict) else len(names)
+        nl = 1 if isinstance(self.nc, int) else len(self.nc)
+        self.boxes = Boxes(boxes, self.orig_shape, nl=nl) if boxes is not None else None  # native size boxes
         self.masks = Masks(masks, self.orig_shape) if masks is not None else None  # native size or imgsz masks
         self.probs = Probs(probs) if probs is not None else None
         self.keypoints = Keypoints(keypoints, self.orig_shape) if keypoints is not None else None
         self.obb = OBB(obb, self.orig_shape) if obb is not None else None
         self.speed = {"preprocess": None, "inference": None, "postprocess": None}  # milliseconds per image
-        self.names = names
         self.path = path
         self.save_dir = None
         self._keys = "boxes", "masks", "probs", "keypoints", "obb"
@@ -322,9 +324,10 @@ class Results(SimpleClass):
         if probs is not None:
             log_string += f"{', '.join(f'{self.names[j]} {probs.data[j]:.2f}' for j in probs.top5)}, "
         if boxes:
-            for c in boxes.cls.unique():
-                n = (boxes.cls == c).sum()  # detections per class
-                log_string += f"{n} {self.names[int(c)]}{'s' * (n > 1)}, "
+            for c in boxes.cls.unique(dim=0):
+                n = (boxes.cls == c).all(dim=1).sum()  # detections per class
+                name = " ".join(self.names[i][int(j)] for i, j in enumerate(c))
+                log_string += f"{n} {name}{'s' * (n > 1)}, "
         return log_string
 
     def save_txt(self, txt_file, save_conf=False):
@@ -457,7 +460,7 @@ class Boxes(BaseTensor):
         to(device, dtype=None): Moves the boxes to the specified device.
     """
 
-    def __init__(self, boxes, orig_shape) -> None:
+    def __init__(self, boxes, orig_shape, nl=1) -> None:
         """
         Initialize the Boxes class.
 
@@ -470,7 +473,7 @@ class Boxes(BaseTensor):
         if boxes.ndim == 1:
             boxes = boxes[None, :]
         n = boxes.shape[-1]
-        assert n in (6, 7), f"expected 6 or 7 values but got {n}"  # xyxy, track_id, conf, cls
+        assert n in (4+2*nl, 5+2*nl), f"expected {5+nl} or {6+nl} values but got {n}"  # xyxy, [track_id], conf, cls
         super().__init__(boxes, orig_shape)
         self.is_track = n == 7
         self.orig_shape = orig_shape
@@ -483,12 +486,12 @@ class Boxes(BaseTensor):
     @property
     def conf(self):
         """Return the confidence values of the boxes."""
-        return self.data[:, -2]
+        return self.data[:, 4::2]
 
     @property
     def cls(self):
         """Return the class values of the boxes."""
-        return self.data[:, -1]
+        return self.data[:, 5::2]
 
     @property
     def id(self):
