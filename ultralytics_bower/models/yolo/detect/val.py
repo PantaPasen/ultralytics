@@ -292,9 +292,9 @@ class DetectionValidator(BaseValidator):
             self.jdict.append(
                 {
                     "image_id": image_id,
-                    "category_id": self.class_map[int(p[5])],
+                    "category_id": [self.class_map[int(v)] for v in p[5::2]],
                     "bbox": [round(x, 3) for x in b],
-                    "score": round(p[4], 5),
+                    "score": [round(v, 5) for v in p[4::2]],
                 }
             )
 
