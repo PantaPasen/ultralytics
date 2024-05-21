@@ -132,10 +132,13 @@ class DetectMultiHead(Detect):
             self.shape = shape
 
         if self.export and self.format in ("saved_model", "pb", "tflite", "edgetpu", "tfjs"):  # avoid TF FlexSplitV ops
-            raise NotImplementedError("Do I need to implement this??")
+            print(x.shape)
             box = x_cat[:, : self.reg_max * 4]
-            cls1 = x_cat[:, self.reg_max * 4 : self.reg_max * 4 + self.nc[0]]
-            cls2 = x_cat[:, self.reg_max * 4 + self.nc[0] :]
+            cls = x_cat[:, self.reg_max * 4 :]
+            #raise NotImplementedError("Do I need to implement this??")
+            #box = x_cat[:, : self.reg_max * 4]
+            #cls1 = x_cat[:, self.reg_max * 4 : self.reg_max * 4 + self.nc[0]]
+            #cls2 = x_cat[:, self.reg_max * 4 + self.nc[0] :]
         else:
             box, cls = x_cat.split([self.reg_max * 4, sum(self.nc)], 1)
 
