@@ -736,7 +736,7 @@ class Exporter:
         check_requirements(
             (
                 "onnx>=1.12.0",
-                "onnx2tf>=1.15.4,<=1.17.5",
+                "onnx2tf>=1.15.4",
                 "sng4onnx>=1.0.1",
                 "onnxsim>=0.4.33",
                 "onnx_graphsurgeon>=0.3.26",
@@ -815,9 +815,9 @@ class Exporter:
             for file in f.rglob("*_integer_quant_with_int16_act.tflite"):
                 file.unlink()  # delete extra fp16 activation TFLite files
 
-        # Add TFLite metadata
-        for file in f.rglob("*.tflite"):
-            f.unlink() if "quant_with_int16_act.tflite" in str(f) else self._add_tflite_metadata(file)
+        # # Add TFLite metadata
+        # for file in f.rglob("*.tflite"):
+        #     f.unlink() if "quant_with_int16_act.tflite" in str(f) else self._add_tflite_metadata(file)
 
         return str(f), tf.saved_model.load(f, tags=None, options=None)  # load saved_model as Keras model
 
